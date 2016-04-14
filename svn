@@ -24,14 +24,17 @@ if [ "$EUID" -eq 0 ];then
         exit;
 fi
 if [ "$1" = "help"  ];then
-	printf "This script overrides the svn binary on this system.\nThis way, we can have hooks on svn's client-side.\nJust use it as you would call the original svn."
+        printf "This script overrides the svn binary on this system.\nThis way, we can have hooks on svn's client-side.\nJust use it as you would call the original svn."
 fi
-output=$(printf 'Username: %s\nCurrent path: %s\nCommand: %s\n' "$($loginUser)" "$($PWD)" "$0 $*");
-
-# Let your team at slack know that you're doing this!
-curl --data "$output" "https://$slackTeam.slack.com/services/hooks/slackbot?token=$slackToken&channel=%23$slackChannel";
-cd "$($PWD)" || exit;
 
 actionSVN="$1";
 shift;
-$SVN "$actionSVN" "$@";
+
+outputSVN=$($SVN "$actionSVN" "$@");
+# Prints the output from command to the user
+printf "%s\n" "$outputSVN";
+
+outputSlack=$(printf 'Username: %s\nCurrent path: %s\nCommand: %s\nOutput: ```%s```\n' "$($loginUser)" "$($PWD)" "$0 $actionSVN $*" "$outputSVN");
+
+# Let your team at slack know that you're doing this!
+curl --data "$outputSlack" "https://$slackTeam.slack.com/services/hooks/slackbot?token=$slackToken&channel=%23$slackChannel";
