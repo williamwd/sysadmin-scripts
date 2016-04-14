@@ -1,0 +1,37 @@
+#!/bin/bash
+
+# What I did here is a script to override the svn binary. You should rename
+# the svn binary into something that you want (svn-original in my case)
+# and the user would call this script that does some output and verifications.
+# It allows me to use some sort of svn hooks on client-side, since it only 
+# supports server side hooks (pre-commit, pre-lock...).
+# In my case, I just wanted to message the team when production server got
+# updated but i'm sure you can do more.
+
+
+PWD=$(which pwd);
+SVN=$(which svn-original);
+loginUser=$(which logname);
+slackTeam="";
+slackChannel="";
+slackToken="";
+
+if [ "$EUID" -eq 0 ];then
+        clear;
+        printf "====================================================\n";
+        printf "Hey %s,\n\nDo not use svn as root, ok?!\nNEVER!\n\n" "$($loginUser)";
+        printf "====================================================\n";
+        exit;
+fi
+if [ "$1" = "help"  ];then
+	printf "This script overrides the svn binary on this system.\nThis way, we can have hooks on svn's client-side.\nJust use it as you would call the original svn."
+fi
+output=$(printf 'Username: %s\nCurrent path: %s\nCommand: %s\n' "$($loginUser)" "$($PWD)" "$0 $*");
+
+# Let your team at slack know that you're doing this!
+curl --data "$output" "https://$slackTeam.slack.com/services/hooks/slackbot?token=$slackToken&channel=%23$slackChannel";
+cd "$($PWD)" || exit;
+
+actionSVN="$1";
+shift;
+$SVN "$actionSVN" "$@";
